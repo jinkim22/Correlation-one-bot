@@ -41,8 +41,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         INTERCEPTOR = config["unitInformation"][5]["shorthand"]
         MP = 1
         SP = 0
+        
         # This is a good place to do initial setup
         self.scored_on_locations = []
+        self.damaged_locations = []
 
     def on_turn(self, turn_state):
         """
@@ -60,6 +62,10 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         game_state.submit_turn()
 
+        # we want to limit the damaged locations to only hold the information of
+        # the damages after 5 turns
+        if len(self.damaged_locations) > 5:
+            self.damaged_locations.pop(0)
 
     """
     NOTE: All the methods after this point are part of the sample starter-algo
@@ -75,7 +81,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         If there are no stationary units to attack in the front, we will send Scouts to try and score 
         quickly.
         """
-        # First, place basic defenses
+        # First, place basic defenses 
+        # and build over
         self.build_defences(game_state)
         
 
@@ -84,11 +91,15 @@ class AlgoStrategy(gamelib.AlgoCore):
         # function to add support
         
         # functions to build reactive defenses
-        #   funciton to repair walls
+        #   funciton to repair walls (know when to delete and rebuild)
         #   function to add new walls at the corner
+        #   
         #   function to add new walls where opponent attacks
+        #   Stuff to flag: opponent is saving up (basically no offense in past 5
+        #   turns), opponent is stacking attacks (check damage locations), 
 
-        # functions for offensive
+
+        # functions for offensive the (Jin kim's job)
         #   function to look at opponent's defensive
         #   function to design path of walls
         #   function to release troops/mobile units
@@ -140,10 +151,6 @@ class AlgoStrategy(gamelib.AlgoCore):
         Remember to defend corners and avoid placing units in the front where
         enemy demolishers can attack them.
         """
-        # Useful tool for setting up your base locations:
-        # https://www.kevinbai.design/terminal-map-maker
-        # More community tools available at:
-        # https://terminal.c1games.com/rules#Download
 
         # Place turrets that attack enemy units
         turret_locations_corner = [[23, 11], [4, 11]] 
@@ -164,15 +171,29 @@ class AlgoStrategy(gamelib.AlgoCore):
         # front line walls
         for i in [0, 1, 2, 25, 26, 27]:
             wall_locations.append([i, 13])
-        game_state.attempt_spawn(WALL, wall_locations)
 
+        game_state.attempt_spawn(WALL, wall_locations)
+        
+        # upgrade frontline walls frist
+        game_state.attempt_upgrade(wall_locations[::-1]) 
         
 
     def build_support(self, game_state):
         """
         building the support needed for our offense
         checks for turn number then utilizes what is needed
+        
+        Hamlin's notes
+        check for the turn number
+            - allows us to know when to be upgraded 
+
         """
+
+
+        
+
+
+
 
     def build_reactive_defense(self, game_state):
         """
@@ -272,21 +293,37 @@ class AlgoStrategy(gamelib.AlgoCore):
         Processing the action frames is complicated so we only suggest it if you have time and experience.
         Full doc on format of a game frame at in json-docs.html in the root of the Starterkit.
         """
-        # Let's record at what position we get scored on
+        # Read in string as json
         state = json.loads(turn_string)
+        player_id = 1
+
+        # Let's record at what position we get scored on
         events = state["events"]
         breaches = events["breach"]
         for breach in breaches:
             location = breach[0]
             unit_owner_self = True if breach[4] == 1 else False
             # When parsing the frame data directly, 
-            # 1 is integer for yourself, 2 is opponent (StarterKit code uses 0, 1 as player_index instead)
+            # 1 is integer for yourself, 2 is opponent (StarterKit code uses 0,
+            # 1 as player_index instead)
             if not unit_owner_self:
                 gamelib.debug_write("Got scored on at: {}".format(location))
                 self.scored_on_locations.append(location)
                 gamelib.debug_write("All locations: {}".format(self.scored_on_locations))
+        
+        # record possible damage locations
+        damages = events["damaged"]
+        damages_on_turn = []
+        for damaged in damages:
+            location = damaged[0]
+            unit_owner_self = True if damaged[4] == player_id else False
+            
+            # store the location of the damages
+            if not unit_owner_self:
+                damages_on_turn.append(location)
 
-
+        self.damaged_locations.append(damages_on_turn)
+        
 if __name__ == "__main__":
     algo = AlgoStrategy()
     algo.start()

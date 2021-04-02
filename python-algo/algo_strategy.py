@@ -70,11 +70,37 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         For defense we will use a spread out layout and some interceptors early on.
         We will place turrets near locations the opponent managed to score on.
-        For offense we will use long range demolishers if they place stationary units near the enemy's front.
-        If there are no stationary units to attack in the front, we will send Scouts to try and score quickly.
+        For offense we will use long range demolishers if they place stationary units near the enemy's 
+        front.
+        If there are no stationary units to attack in the front, we will send Scouts to try and score 
+        quickly.
         """
         # First, place basic defenses
         self.build_defences(game_state)
+        
+
+        # TODO: 
+
+        # function to add support
+        
+        # functions to build reactive defenses
+        #   funciton to repair walls
+        #   function to add new walls at the corner
+        #   function to add new walls where opponent attacks
+
+        # functions for offensive
+        #   function to look at opponent's defensive
+        #   function to design path of walls
+        #   function to release troops/mobile units
+        
+
+
+
+
+
+
+
+
         # Now build reactive defenses based on where the enemy scored
         self.build_reactive_defense(game_state)
 
@@ -82,43 +108,71 @@ class AlgoStrategy(gamelib.AlgoCore):
         if game_state.turn_number < 5:
             self.stall_with_interceptors(game_state)
         else:
-            # Now let's analyze the enemy base to see where their defenses are concentrated.
-            # If they have many units in the front we can build a line for our demolishers to attack them at long range.
-            if self.detect_enemy_unit(game_state, unit_type=None, valid_x=None, valid_y=[14, 15]) > 10:
+            # Now let's analyze the enemy base to see where their defenses are
+            # concentrated.  If they have many units in the front we can build a
+            # line for our demolishers to attack them at long range.
+            if self.detect_enemy_unit(game_state, unit_type=None, valid_x=None,
+                                      valid_y=[14, 15]) > 10:
                 self.demolisher_line_strategy(game_state)
             else:
-                # They don't have many units in the front so lets figure out their least defended area and send Scouts there.
+                # They don't have many units in the front so lets figure out
+                # their least defended area 
+                # and send Scouts there.
 
                 # Only spawn Scouts every other turn
-                # Sending more at once is better since attacks can only hit a single scout at a time
+                # Sending more at once is better since attacks can only hit a
+                # single scout at a time
                 if game_state.turn_number % 2 == 1:
-                    # To simplify we will just check sending them from back left and right
+                    # To simplify we will just check sending them from back left
+                    # and right
                     scout_spawn_location_options = [[13, 0], [14, 0]]
                     best_location = self.least_damage_spawn_location(game_state, scout_spawn_location_options)
                     game_state.attempt_spawn(SCOUT, best_location, 1000)
 
-                # Lastly, if we have spare SP, let's build some Factories to generate more resources
+                # Lastly, if we have spare SP, let's build some Factories to
+                # generate more resources
                 support_locations = [[13, 2], [14, 2], [13, 3], [14, 3]]
                 game_state.attempt_spawn(SUPPORT, support_locations)
 
     def build_defences(self, game_state):
         """
         Build basic defenses using hardcoded locations.
-        Remember to defend corners and avoid placing units in the front where enemy demolishers can attack them.
+        Remember to defend corners and avoid placing units in the front where
+        enemy demolishers can attack them.
         """
-        # Useful tool for setting up your base locations: https://www.kevinbai.design/terminal-map-maker
-        # More community tools available at: https://terminal.c1games.com/rules#Download
+        # Useful tool for setting up your base locations:
+        # https://www.kevinbai.design/terminal-map-maker
+        # More community tools available at:
+        # https://terminal.c1games.com/rules#Download
 
         # Place turrets that attack enemy units
-        turret_locations = [[0, 13], [27, 13], [8, 11], [19, 11], [13, 11], [14, 11]]
-        # attempt_spawn will try to spawn units if we have resources, and will check if a blocking unit is already there
-        game_state.attempt_spawn(TURRET, turret_locations)
+        turret_locations_corner = [[23, 11], [4, 11]] 
+        turret_locations_mid = [[10, 7], [17, 7]]        
+        turret_locations = turret_locations_corner + turret_locations_mid
+        game_state.attempt_spawn(TURRET, turret_locations_corner +
+                                 turret_locations_mid)
         
-        # Place walls in front of turrets to soak up damage for them
-        wall_locations = [[8, 12], [19, 12]]
+        # upgrade turrets after they attack
+        game_state.attempt_upgrade(turret_locations)
+
+        wall_locations = []
+        
+        # protect the turrets
+        for turret in turret_locations:
+            wall_locations.append([turret[0], turret[1] + 1])
+        
+        # front line walls
+        for i in [0, 1, 2, 25, 26, 27]:
+            wall_locations.append([i, 13])
         game_state.attempt_spawn(WALL, wall_locations)
-        # upgrade walls so they soak more damage
-        game_state.attempt_upgrade(wall_locations)
+
+        
+
+    def build_support(self, game_state):
+        """
+        building the support needed for our offense
+        checks for turn number then utilizes what is needed
+        """
 
     def build_reactive_defense(self, game_state):
         """

@@ -66,7 +66,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.support_locations = []
 
         for i in range(14, 11, -1):
-            for j in range(5, 2, -1):
+            # for j in range(5, 2, -1):
+            for j in range(5, 3, -1):
                 self.support_locations.append([i, j])
         
         self.built_supports = []
@@ -100,7 +101,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         if self.is_attacking == True: # one before the attacking stage, we want to build walls
             if game_state.turn_number == self.attacking_round_start - 1:
                 game_state.attempt_spawn(WALL, [[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7]])
-            if game_state.turn_number == self.attacking_round_start + 1:
+            if game_state.turn_number == self.attacking_round_start+1:
                 self.is_attacking = False
                 self.attacking_right = False
                 game_state.attempt_remove([[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7]])
@@ -116,11 +117,12 @@ class AlgoStrategy(gamelib.AlgoCore):
         if self.is_attacking:
             if game_state.turn_number == self.attacking_round_start:
                 if self.attacking_right:
-                    game_state.attempt_spawn(SCOUT, [8,5], 12)
-                    game_state.attempt_spawn(SCOUT, [13,0], int(self.MP)-12)
+                    game_state.attempt_spawn(SCOUT, [13,0], 12)
+                    game_state.attempt_spawn(SCOUT, [8,5], int(self.MP)-12)
+                    
                 else:
-                    game_state.attempt_spawn(SCOUT, [19,5], 12)
-                    game_state.attempt_spawn(SCOUT, [14,0], int(self.MP)-12)
+                    game_state.attempt_spawn(SCOUT, [14,0], 12)
+                    game_state.attempt_spawn(SCOUT, [19,5], int(self.MP)-12)
         else:
             mp_threshold = self.adjust_attack_mp_thresh(game_state.turn_number)
             if self.MP >= mp_threshold:
@@ -131,31 +133,28 @@ class AlgoStrategy(gamelib.AlgoCore):
                 least_damage_res = self.least_damage_spawn_location(game_state, deploy_possible_arr)
                 least_damage_loc = least_damage_res[0]
                 least_damage_num = least_damage_res[1]
-                # deploy_possible_arr.remove(least_damage_loc)
-                # second_least_dmg_res = self.least_damage_spawn_location(game_state, deploy_possible_arr)
-                # second_least_damage_loc = second_least_dmg_res[0]
-                # second_least_damage_num = second_least_dmg_res[1]
-                if least_damage_num > 260: # then they probably have good defense in general
-                    # go for the corners
-                    # but first, do they have walls on the edges?
-                    self.attacking_round_start = game_state.turn_number+4
-                    self.is_attacking = True
-                    left_corner_wall =  game_state.contains_stationary_unit([0, 14])
-                    right_corner_wall = game_state.contains_stationary_unit([27, 14])
-                    is_blocked = False
-                    go_right = False
-                    if left_corner_wall and right_corner_wall:
-                        is_blocked = True
-                    elif left_corner_wall:
-                        go_right = True
-                    if go_right:
-                        self.attacking_right = True
-                        game_state.attempt_remove([[26,13],[27,13],[26,12],[25,12]])
-                    else:
-                        game_state.attempt_remove([[0,13],[1,13],[1,12],[2,12]])
+                if least_damage_num > 120: # then they probably have good defense in general
+                    if game_state.turn_number >= 10:
+                        # go for the corners
+                        # but first, do they have walls on the edges?
+                        self.attacking_round_start = game_state.turn_number+3
+                        self.is_attacking = True
+                        left_corner_wall =  game_state.contains_stationary_unit([0, 14])
+                        right_corner_wall = game_state.contains_stationary_unit([27, 14])
+                        is_blocked = False
+                        go_right = False
+                        if left_corner_wall and right_corner_wall:
+                            is_blocked = True
+                        elif left_corner_wall:
+                            go_right = True
+                        if go_right:
+                            self.attacking_right = True
+                            game_state.attempt_remove([[26,13],[27,13],[26,12],[25,12]])
+                        else:
+                            game_state.attempt_remove([[0,13],[1,13],[1,12],[2,12]])
                 # if deploy_targ is on left side, spawn remaining a little behind
                 # vice versa
-                else:
+                else: 
                     first_stack_num = 8
                     if self.is_attacking == True:
                         first_stack_num = 12
@@ -331,7 +330,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # wall upgrade logic
         front_line = wall_locations[:-4] + extra_front_walls
         turret_walls = wall_locations[-4:]
-        if game_state.turn_number > 5 and self.SP > 10: # 10 was randomly derived, maybe room for improvement?
+        if game_state.turn_number > 7 and self.SP > 3: # 10, 7 was randomly derived, maybe room for improvement?
             # upgrade frontline walls first
             # upgrade the walls by front turrets
             self.upgrade_and_update(game_state, front_line)
@@ -362,7 +361,6 @@ class AlgoStrategy(gamelib.AlgoCore):
                 new_locations = right_corner + left_corner
             else:
                 new_locations = left_corner + right_corner
-
         self.spawn_and_update(game_state, WALL, new_locations)
         
         return new_locations
@@ -392,8 +390,10 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         # if no resource constraint
         if self.SP > 9:
-            both_wings = left_wing + right_wing
+            both_wings = left_wing[:3] + right_wing[:3]
             self.spawn_and_update(game_state, WALL, both_wings)
+            turret_wings = left_wing[3:] + right_wing[3:]
+            self.spawn_and_update(game_state, TURRET, turret_wings)
         else:
             # check where opponent is breaching
             avg_x = 0
@@ -404,11 +404,15 @@ class AlgoStrategy(gamelib.AlgoCore):
                 avg_x /= len(self.scored_on_locations)
 
             if avg_x > 13.5:
-                self.spawn_and_update(game_state, WALL, right_wing)
-                self.spawn_and_update(game_state, WALL, left_wing)
+                self.spawn_and_update(game_state, TURRET, right_wing[3:])
+                self.spawn_and_update(game_state, TURRET, right_wing[3:])
+                self.spawn_and_update(game_state, WALL, left_wing[:3])
+                self.spawn_and_update(game_state, WALL, left_wing[:3])
             else:
-                self.spawn_and_update(game_state, WALL, left_wing)
-                self.spawn_and_update(game_state, WALL, right_wing)
+                self.spawn_and_update(game_state, TURRET, left_wing[3:])
+                self.spawn_and_update(game_state, TURRET, right_wing[3:])
+                self.spawn_and_update(game_state, WALL, right_wing[:3])
+                self.spawn_and_update(game_state, WALL, left_wing[:3])
 
     def reinforce_mid(self, game_state):
         """
@@ -429,10 +433,10 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         # add turrets if resource allows and we are damaged or REINFORCE flag 
         # is on
-        if self.REINFORCE_MID or (self.SP > 5 and game_state.my_health <= 25):
+        if self.REINFORCE_MID or (self.SP > 7 and game_state.my_health <= 25):
             self.REINFORCE_MID = True
+            walls = [[11, 11], [15, 11]]
             turrets = [[11, 10], [15, 10]]
-            walls = [[11, 9], [15, 9]]
             self.spawn_and_update(game_state, TURRET, turrets)
             self.upgrade_and_update(game_state, turrets)
             self.spawn_and_update(game_state, WALL, walls)
@@ -459,7 +463,8 @@ class AlgoStrategy(gamelib.AlgoCore):
             [12, 6]
         ]
         
-        wall_number = built_number if built_number < 9 else 8
+        # wall_number = built_number if built_number < 9 else 8
+        wall_number = built_number if built_number < 6 else 5
         for i in range(wall_number // 3 + 1):
             self.spawn_and_update(game_state, WALL, support_wall_locations[i])
 
@@ -476,7 +481,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             self.spawn_and_update(game_state, SUPPORT, self.support_locations)
         
         # upgrade after
-        if len(self.built_supports) > 0:
+        if len(self.built_supports) > 0 and self.SP > 10:
             self.upgrade_and_update(game_state, self.built_supports)
     
     def refund_damaged_units(self, game_state):
@@ -510,13 +515,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             path = game_state.find_path_to_edge(location)
             damage = 0
             for path_location in path:
-                # Get number of enemy turrets that can attack each location and multiply by turret damage
-                turrets = game_state.get_attackers(path_location, 1)
-                for t in turrets:
-                    if t.upgraded == True:
-                        damage += 20
-                    else:
-                        damage += 6
+                damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i # maybe a problem here because it assumes all turrets are not upgraded
             if game_state.contains_stationary_unit(path[-1]):
                 damage += game_state.game_map[path[-1][0], path[-1][1]].health
             damages.append(damage)

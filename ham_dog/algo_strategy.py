@@ -331,7 +331,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # wall upgrade logic
         front_line = wall_locations[:-4] + extra_front_walls
         turret_walls = wall_locations[-4:]
-        if game_state.turn_number > 5:
+        if game_state.turn_number > 5 and self.SP > 10: # 10 was randomly derived, maybe room for improvement?
             # upgrade frontline walls first
             # upgrade the walls by front turrets
             self.upgrade_and_update(game_state, front_line)

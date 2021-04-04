@@ -212,7 +212,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         decide if we want reinforce left or right first
         """
         right_corner = [[24, 13], [23, 13]]
-        left_corner = [[4, 13], [5, 13]]
+        left_corner = [[3, 13], [4, 13]]
         new_locations = []
         
         # if SP is constrained, decide with damaged locations

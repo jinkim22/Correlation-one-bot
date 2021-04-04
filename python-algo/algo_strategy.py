@@ -291,6 +291,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # add turrets if resource allows and we are damaged or REINFORCE flag 
         # is on
         if self.REINFORCE_MID or (self.SP > 10 and game_state.my_health <= 25):
+            self.REINFORCE_MID = True
             turrets = [[11, 10], [15, 10]]
             walls = [[11, 9], [15, 9]]
             self.spawn_and_update(game_state, TURRET, turrets)

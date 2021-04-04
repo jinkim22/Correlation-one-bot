@@ -32,7 +32,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         gamelib.debug_write("Configuring your custom algo strategy...")
         self.config = config
-        global WALL, SUPPORT, TURRET, SCOUT, DEMOLISHER, INTERCEPTOR, MP, SP
+        global WALL, SUPPORT, TURRET, SCOUT, DEMOLISHER, INTERCEPTOR, MP, SP 
+        
         WALL = config["unitInformation"][0]["shorthand"]
         SUPPORT = config["unitInformation"][1]["shorthand"]
         TURRET = config["unitInformation"][2]["shorthand"]
@@ -42,8 +43,13 @@ class AlgoStrategy(gamelib.AlgoCore):
         MP = 1
         SP = 0
 
-        global HOME_FIELD
+        global HOME_FIELD, OPP_SIDE, SCORE_LOC, DEPLOY_LOC, mp_threshold, SELF_DESTRUCT_THIS_TURN
         HOME_FIELD = self.get_my_grid()
+        OPP_SIDE =  self.get_opp_grid()
+        SCORE_LOC = self.get_scoring_locs()
+        DEPLOY_LOC = self.get_deploy_loc()
+        SELF_DESTRUCT_THIS_TURN = False
+        mp_threshold = 8
 
         # This is a good place to do initial setup
         self.scored_on_locations = []
@@ -92,6 +98,53 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         self.refund_damaged_units(game_state)
 
+        mp_threshold = self.adjust_attack_mp_thresh(game_state.turn_number)
+
+        if SELF_DESTRUCT_THIS_TURN:
+            game_state.attempt_spawn(SCOUT, [9,4], 8)
+            game_state.attempt_spawn(SCOUT, [10,3], 100)
+            attempt_remove([11,6])
+            SELF_DESTRUCT_THIS_TURN = False
+        else:
+            if self.MP >= mp_threshold:
+                deploy_possible_arr = []
+                for x in DEPLOY_LOC:
+                    if game_state.contains_stationary_unit(x) == False:
+                        deploy_possible_arr += [x]
+                least_damage_res = self.least_damage_spawn_location(game_state, deploy_possible_arr)
+                least_damage_loc = least_damage_res[0]
+                least_damage_num = least_damage_res[1]
+                second_least_dmg_res = self.least_damage_spawn_location(game_state, deploy_possible_arr.remove(least_damage_loc))
+                second_least_damage_loc = second_least_dmg_res[0]
+                second_least_damage_num = second_least_dmg_res[1]
+                if least_damage_num > 260: # then they probably have good defense in general
+                    # go for the corners
+                    # but first, do they have walls on the edges?
+                    left_corner_wall =  game_state.contains_stationary_unit([0, 14])
+                    right_corner_wall = game_state.contains_stationary_unit([27, 14])
+                    is_blocked = False
+                    go_right = False
+                    if left_corner_wall and right_corner_wall:
+                        is_blocked = True
+                    elif left_corner_wall:
+                        go_right = True
+                    if is_blocked:
+                        # get ready to do suicide bombing
+                        # but even if we should, do we have the structure to suicide bomb? checking right now by seeing if the lowest priority structure gets made, but should probably use different function?
+                        game_state.attempt_remove([0,13],[1,13])
+                        game_state.attempt_spawn(WALL, [[10,7], [10,6], [10,5], [10,4], [10,3]])
+                    elif go_right:
+                        game_state.attempt_remove([0,13],[1,13])
+                        game_state.attempt_spawn(WALL, [[10,7], [10,6], [10,5], [10,4], [10,3]])
+                    else:
+                        game_state.attempt_remove([26,13],[27,13])
+                        game_state.attempt_spawn(WALL, [[16,7], [16,6], [16,5], [16,4], [16,3]])
+                # if deploy_targ is on left side, spawn remaining a little behind
+                # vice versa
+                else:
+                    game_state.attempt_spawn(SCOUT, least_damage_loc, 8)
+                    if least_damage_loc[0] > 13: # then this this path starts from the right
+                        game_state.attempt_spawn(SCOUT, second_least_damage_loc, 100)
         game_state.submit_turn()
 
     """
@@ -349,6 +402,40 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.attempt_remove(self.damaged_locs)
 
         return removed
+
+    # Offensive helper functions
+    def adjust_attack_mp_thresh(self, t_n):
+        if t_n <= 5:
+            return 8
+        elif t_n > 5 and t_n <= 10:
+            return 13
+        elif t_n > 10:
+            return 18
+
+    def least_damage_spawn_location(self, game_state, location_options):
+        """
+        This function will help us guess which location is the safest to spawn moving units from.
+        It gets the path the unit will take then checks locations on that path to 
+        estimate the path's damage risk.
+        """
+        damages = []
+        # Get the damage estimate each path will take
+        for location in location_options:
+            path = game_state.find_path_to_edge(location)
+            damage = 0
+            for path_location in path:
+                # Get number of enemy turrets that can attack each location and multiply by turret damage
+                turrets = game_state.get_attackers(path_location, 1)
+                for t in turrets:
+                    if t.upgraded == True:
+                        damage += 20
+                    else:
+                        damage += 6
+            damages.append(damage)
+        
+        # Now just return the location that takes the least damage
+        gamelib.debug_write("lowest damage = " + str(min(damages)))
+        return [location_options[damages.index(min(damages))], min(damages)]
 
     def on_action_frame(self, turn_string):
         """

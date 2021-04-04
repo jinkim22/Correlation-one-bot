@@ -56,6 +56,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.damaged_locs = []
         self.REINFORCE_MID = False
 
+        self.enemy_units = [[], [], [], [], [], [], [], []]
+        self.BEGIN = True
+        self.DEMOLISHER = False
+        self.last_demolisher_run = 0
         # Used for the support logic
         self.support_locations = []
 
@@ -86,10 +90,10 @@ class AlgoStrategy(gamelib.AlgoCore):
         resources = game_state.get_resources()
         self.SP = resources[0]
         self.MP = resources[1]
-        
         self.damaged_locs, self.average_x = self.get_damaged_units(
             game_state.game_map
         )
+        self.detect_demolishers(game_state)
         
         # defensive scheme + support
         self.build_defences(game_state)
@@ -186,6 +190,44 @@ class AlgoStrategy(gamelib.AlgoCore):
             average_x /= len(damaged_list)
         
         return damaged_list, average_x
+    
+    def detect_demolishers(self, game_state):
+        """
+        decide if we need to send in interceptors
+        modifies the interceptor flag accordingly
+        """
+        gamelib.util.debug_write(self.enemy_units)
+
+        enemy_demolishers = self.enemy_units[4]
+        enemy_resources = game_state.get_resources(1)
+        enemy_MP = enemy_resources[1]
+
+        if len(enemy_demolishers) > 0:
+            self.last_demolisher_run = 0
+            self.DEMOLISHER = True
+        
+        if self.DEMOLISHER is False:
+            return
+        
+        # find random interceptor location
+        possible_starts = [
+            [16, 2],
+            [14, 0],
+            [8, 5],
+            [6, 7]
+        ]
+        good_choice = None
+        while good_choice is None:
+            possible = random.choice(possible_starts)
+            last_spot = game_state.find_path_to_edge(possible)[-1]
+            if last_spot not in HOME_FIELD:
+                good_choice = possible
+
+        if self.last_demolsiher_run > 2 or enemy_MP > 5:
+            game_state.attempt_spawn(INTERCEPTOR, good_choice)
+
+
+
 
     def spawn_and_update(self, game_state, unit_type, locations):
         """
@@ -250,7 +292,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             # upgrade the walls by front turrets
             self.upgrade_and_update(game_state, front_line)
             self.upgrade_and_update(game_state, turret_walls)
-        
+
         # begin the wings after turn 4
         if game_state.turn_number > 3:
             self.build_wings(game_state)
@@ -447,6 +489,11 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         # Read in string as json
         state = json.loads(turn_string)
+        
+        if self.BEGIN:
+            gamelib.util.debug_write(state)
+            self.enemy_units = state['p2Units'] 
+            self.BEGIN = False
 
         # Let's record at what position we get scored on
         events = state["events"]

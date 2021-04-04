@@ -150,11 +150,9 @@ class AlgoStrategy(gamelib.AlgoCore):
                         go_right = True
                     if go_right:
                         self.attacking_right = True
-                        # game_state.attempt_remove([[26,13],[27,13],[26,12],[25,12]])
-                        game_state.attempt_remove([[26,13],[27,13]])
+                        game_state.attempt_remove([[26,13],[27,13],[26,12],[25,12]])
                     else:
-                        # game_state.attempt_remove([[0,13],[1,13],[1,12],[2,12]])
-                        game_state.attempt_remove([[0,13],[1,13]])
+                        game_state.attempt_remove([[0,13],[1,13],[1,12],[2,12]])
                 # if deploy_targ is on left side, spawn remaining a little behind
                 # vice versa
                 else:
@@ -333,7 +331,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         # wall upgrade logic
         front_line = wall_locations[:-4] + extra_front_walls
         turret_walls = wall_locations[-4:]
-        if game_state.turn_number > 5: # 10 was randomly derived, maybe room for improvement?
+        if game_state.turn_number > 5 and self.SP > 10: # 10 was randomly derived, maybe room for improvement?
             # upgrade frontline walls first
             # upgrade the walls by front turrets
             self.upgrade_and_update(game_state, front_line)
@@ -352,10 +350,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         adds two walls off the front side
         decide if we want reinforce left or right first
         """
-        # right_corner = [[24, 13], [23, 13], [26, 12], [25, 12]]
-        # left_corner = [[3, 13], [4, 13], [1,12], [2,12]]
-        right_corner = [[24, 13], [23, 13]]
-        left_corner = [[3, 13], [4, 13]]
+        right_corner = [[24, 13], [23, 13], [26, 12], [25, 12]]
+        left_corner = [[3, 13], [4, 13], [1,12], [2,12]]
         new_locations = []
         
         # if SP is constrained, decide with damaged locations
@@ -368,7 +364,7 @@ class AlgoStrategy(gamelib.AlgoCore):
                 new_locations = left_corner + right_corner
 
         self.spawn_and_update(game_state, WALL, new_locations)
-        # new_locations = left_corner[:2] + right_corner[:2]
+        
         return new_locations
 
     def build_wings(self, game_state):
@@ -480,7 +476,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             self.spawn_and_update(game_state, SUPPORT, self.support_locations)
         
         # upgrade after
-        if len(self.built_supports) > 0:
+        if len(self.built_supports) > 0 and self.SP > 10:
             self.upgrade_and_update(game_state, self.built_supports)
     
     def refund_damaged_units(self, game_state):

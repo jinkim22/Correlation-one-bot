@@ -318,8 +318,9 @@ class AlgoStrategy(gamelib.AlgoCore):
             [13, 6],
             [12, 6]
         ]
-
-        for i in range(built_number // 3 + 1):
+        
+        wall_number = built_number if built_number < 9 else 8
+        for i in range(wall_number // 3 + 1):
             self.spawn_and_update(game_state, WALL, support_wall_locations[i])
 
         if built_number < locations: 

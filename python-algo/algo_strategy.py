@@ -338,6 +338,16 @@ class AlgoStrategy(gamelib.AlgoCore):
         if len(self.built_supports) > 0:
             self.upgrade_and_update(game_state, self.built_supports)
     
+    def refund_damaged_units(self, game_state):
+        """
+        Removed damaged units
+        """
+        removed = 0
+        if len(self.damaged_locs) > 0:
+            game_state.attempt_remove(self.damaged_locs)
+
+        return removed
+
     def on_action_frame(self, turn_string):
         """
         This is the action frame of the game. This function could be called

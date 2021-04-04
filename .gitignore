@@ -1,2 +1,3 @@
 ./python-algo/.ipynb-*
 ./python-algo/.vscode
+./python-algo/gamelib/*

@@ -96,9 +96,6 @@ class AlgoStrategy(gamelib.AlgoCore):
             game_state.game_map
         )
         self.detect_demolishers(game_state)
-        
-        if self.is_attacking == False:
-            self.build_defences(game_state)
 
         if self.is_attacking == True: # one before the attacking stage, we want to build walls
             if game_state.turn_number == self.attacking_round_start - 1:
@@ -108,6 +105,9 @@ class AlgoStrategy(gamelib.AlgoCore):
                 self.attacking_right = False
                 game_state.attempt_remove([[10,7],[11,7],[12,7],[13,7],[14,7],[15,7],[16,7]])
     
+        if self.is_attacking == False:
+            self.build_defences(game_state)
+        
         # defensive scheme + support
         self.build_support(game_state)
 
@@ -148,15 +148,11 @@ class AlgoStrategy(gamelib.AlgoCore):
                         is_blocked = True
                     elif left_corner_wall:
                         go_right = True
-                    if is_blocked:
-                        # get ready to do suicide bombing
-                        # but even if we should, do we have the structure to suicide bomb? checking right now by seeing if the lowest priority structure gets made, but should probably use different function?
-                        game_state.attempt_remove([[0,13],[1,13]])
-                    elif go_right:
+                    if go_right:
                         self.attacking_right = True
-                        game_state.attempt_remove([[26,13],[27,13]])
+                        game_state.attempt_remove([[26,13],[27,13],[26,12],[25,12]])
                     else:
-                        game_state.attempt_remove([[0,13],[1,13]])
+                        game_state.attempt_remove([[0,13],[1,13],[1,12],[2,12]])
                 # if deploy_targ is on left side, spawn remaining a little behind
                 # vice versa
                 else:
@@ -355,7 +351,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         decide if we want reinforce left or right first
         """
         right_corner = [[24, 13], [23, 13], [26, 12], [25, 12]]
-        left_corner = [[3, 13], [4, 13]]
+        left_corner = [[3, 13], [4, 13], [1,12], [2,12]]
         new_locations = []
         
         # if SP is constrained, decide with damaged locations

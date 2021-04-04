@@ -271,7 +271,7 @@ class AlgoStrategy(gamelib.AlgoCore):
             if last_spot not in HOME_FIELD:
                 good_choice = possible
 
-        if self.last_demolsiher_run > 2 or enemy_MP > 5:
+        if self.last_demolisher_run > 2 or enemy_MP > 5:
             game_state.attempt_spawn(INTERCEPTOR, good_choice)
 
 
@@ -354,7 +354,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         adds two walls off the front side
         decide if we want reinforce left or right first
         """
-        right_corner = [[24, 13], [23, 13]]
+        right_corner = [[24, 13], [23, 13], [26, 12], [25, 12]]
         left_corner = [[3, 13], [4, 13]]
         new_locations = []
         
